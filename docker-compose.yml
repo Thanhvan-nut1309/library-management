@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: library-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: library_db
+    ports:
+      - "3307:3306"   # đổi cổng host vì 3306 đang bị container mysql-local khác chiếm
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql   # tự động chạy schema khi container khởi tạo lần đầu
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot_password"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: library-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      USE_SECRETS_MANAGER: "false"   # local dùng thẳng .env/biến môi trường, không gọi AWS
+      DB_HOST: mysql          # tên service ở trên, Docker tự phân giải thành IP nội bộ
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root_password
+      DB_NAME: library_db
+      JWT_SECRET: dev_secret_change_me
+    ports:
+      - "3000:3000"
+
+volumes:
+  mysql_data:

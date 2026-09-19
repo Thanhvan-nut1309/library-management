@@ -1,0 +1,11 @@
+{
+  "name": "library-due-reminder-lambda",
+  "version": "1.0.0",
+  "description": "Lambda function quét sách sắp/quá hạn và gửi email nhắc qua SES",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.600.0",
+    "@aws-sdk/client-ses": "^3.600.0",
+    "mysql2": "^3.10.0"
+  }
+}

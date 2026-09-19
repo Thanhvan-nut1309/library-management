@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thư Viện Số - Hệ Thống Quản Lý Thư Viện (Library Management)</title>
+  <meta name="description" content="Hệ thống quản lý mượn và trả sách hiện đại, tích hợp API Backend chạy trên AWS ECS Fargate." />
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Background Animated Elements -->
+  <div class="bg-blur-circle bg-blur-1"></div>
+  <div class="bg-blur-circle bg-blur-2"></div>
+
+  <!-- Header Navigation -->
+  <header class="app-header">
+    <div class="container header-content">
+      <div class="brand" id="brand-logo">
+        <div class="brand-icon">
+          <i class="fa-solid fa-book-bookmark"></i>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">LibSphere</span>
+          <span class="brand-subtitle">Quản Lý Thư Viện</span>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button class="nav-btn active" data-tab="tab-books" id="nav-books-tab">
+          <i class="fa-solid fa-books"></i>
+          <span>Danh Sách Sách</span>
+        </button>
+        <button class="nav-btn" data-tab="tab-borrow" id="nav-borrow-tab">
+          <i class="fa-solid fa-hand-holding-box"></i>
+          <span>Quản Lý Mượn/Trả</span>
+        </button>
+      </nav>
+
+      <!-- Action & Auth Status Bar -->
+      <div class="header-actions">
+        <!-- API Connection Config Indicator -->
+        <button class="btn btn-glass btn-api-config" id="btn-open-api-config" title="Cấu hình đường dẫn API Endpoint ECS ALB">
+          <span class="status-dot online" id="api-status-dot"></span>
+          <i class="fa-solid fa-network-wired"></i>
+          <span class="api-label" id="api-label-text">API Endpoint</span>
+        </button>
+
+        <!-- User Authentication Widget -->
+        <div class="user-auth-widget" id="user-auth-widget">
+          <!-- Rendered dynamically by JS -->
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container main-content">
+
+    <!-- Section Stat Cards -->
+    <section class="stats-overview">
+      <div class="stat-card">
+        <div class="stat-icon icon-blue">
+          <i class="fa-solid fa-book-open"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="stat-total-books">0</span>
+          <span class="stat-label">Tổng đầu sách</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon icon-green">
+          <i class="fa-solid fa-layer-group"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="stat-available-copies">0</span>
+          <span class="stat-label">Bản sao sẵn có</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon icon-orange">
+          <i class="fa-solid fa-repeat"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="stat-active-borrows">0</span>
+          <span class="stat-label">Đang được mượn</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon icon-purple">
+          <i class="fa-solid fa-server"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="stat-api-latency">-- ms</span>
+          <span class="stat-label">Độ đễ Backend (ECS)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 1: DANH SÁCH SÁCH -->
+    <section id="tab-books" class="tab-pane active">
+      <!-- Search and Filter Control Bar -->
+      <div class="toolbar">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="search-input" placeholder="Tìm theo tên sách, tác giả hoặc thể loại..." autocomplete="off" />
+          <button class="btn-clear-search" id="btn-clear-search" style="display: none;">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="filter-actions">
+          <div class="category-pills" id="category-pills">
+            <button class="pill-btn active" data-cat="all">Tất cả</button>
+            <button class="pill-btn" data-cat="Công nghệ">Công nghệ</button>
+            <button class="pill-btn" data-cat="Văn học">Văn học</button>
+            <button class="pill-btn" data-cat="Kinh tế">Kinh tế</button>
+            <button class="pill-btn" data-cat="Kỹ năng">Kỹ năng</button>
+          </div>
+
+          <!-- Admin Add Book Button -->
+          <button class="btn btn-primary" id="btn-add-book" style="display: none;">
+            <i class="fa-solid fa-plus"></i> Thêm Sách Mới
+          </button>
+        </div>
+      </div>
+
+      <!-- Books Grid Container -->
+      <div class="books-grid" id="books-grid">
+        <!-- Rendered by JS -->
+      </div>
+      <div class="empty-state" id="books-empty" style="display: none;">
+        <i class="fa-solid fa-book-slash empty-icon"></i>
+        <h3 id="books-empty-title">Không tìm thấy cuốn sách nào</h3>
+        <p id="books-empty-desc">Thử tìm kiếm với từ khoá khác hoặc lọc lại thể loại.</p>
+      </div>
+    </section>
+
+    <!-- TAB 2: QUẢN LÝ MƯỢN / TRẢ SÁCH -->
+    <section id="tab-borrow" class="tab-pane">
+      <div class="borrow-header-toolbar">
+        <div class="sub-tabs">
+          <button class="sub-tab-btn active" id="subtab-my-records" data-subtab="my-records">
+            <i class="fa-solid fa-user-clock"></i> Sách Tôi Đang Mượn
+          </button>
+          <button class="sub-tab-btn" id="subtab-all-records" data-subtab="all-records" style="display: none;">
+            <i class="fa-solid fa-list-check"></i> Tất Cả Lượt Mượn (Quyền Admin)
+          </button>
+        </div>
+
+        <!-- Filter for Admin View -->
+        <div class="status-filter-wrapper" id="status-filter-wrapper" style="display: none;">
+          <label for="borrow-status-filter"><i class="fa-solid fa-filter"></i> Trạng thái:</label>
+          <select id="borrow-status-filter" class="select-input">
+            <option value="">Tất cả</option>
+            <option value="borrowing">Đang mượn</option>
+            <option value="returned">Đã trả</option>
+            <option value="overdue">Quá hạn</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Table Container -->
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="custom-table" id="borrow-table">
+            <thead>
+              <tr>
+                <th>#ID</th>
+                <th>Sách</th>
+                <th>Người mượn</th>
+                <th>Ngày mượn</th>
+                <th>Hạn trả</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="borrow-tbody">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="borrow-empty" style="display: none;">
+          <i class="fa-solid fa-folder-open empty-icon"></i>
+          <h3 id="borrow-empty-title">Chưa có lịch sử mượn sách</h3>
+          <p id="borrow-empty-desc">Bạn chưa đăng ký mượn cuốn sách nào từ thư viện.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: Cấu hình Kết nối API Endpoint (ECS Fargate / Domain / Local) -->
+  <div class="modal-overlay" id="modal-api-config">
+    <div class="modal-card modal-md">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-network-wired color-primary"></i> Cấu hình Kết nối API Endpoint</h3>
+        <button class="modal-close" data-close="modal-api-config">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-sm text-muted">
+          Cấu hình đường dẫn trỏ đến Backend running trên <strong>AWS ECS Fargate</strong> (IP của ALB hoặc Tên miền Domain) để Frontend kết nối gọi dữ liệu.
+        </p>
+
+        <div class="form-group margin-top-md">
+          <label for="input-api-url">API Base URL Endpoint</label>
+          <div class="input-with-btn">
+            <input type="url" id="input-api-url" class="form-control" placeholder="http://<ALB-DNS-hoặc-IP>/api" />
+            <button class="btn btn-secondary" id="btn-reset-api-url" title="Khôi phục mặc định">
+              <i class="fa-solid fa-rotate-left"></i>
+            </button>
+          </div>
+          <span class="help-text">Ví dụ: <code>http://alb-library-12345.ap-southeast-1.elb.amazonaws.com</code> hoặc <code>http://localhost:3000</code></span>
+        </div>
+
+        <div class="quick-presets">
+          <span class="quick-preset-title">Chọn nhanh:</span>
+          <button class="preset-chip" id="preset-relative">📌 Local Relative (/api)</button>
+          <button class="preset-chip" id="preset-localhost">💻 Localhost (http://localhost:3000)</button>
+        </div>
+
+        <hr class="divider" />
+
+        <div class="api-testing-section">
+          <h4><i class="fa-solid fa-vial-circle-check color-green"></i> Kiểm thử Kết nối API (GET & POST)</h4>
+          <div class="test-btn-group">
+            <button class="btn btn-outline-primary btn-sm" id="btn-test-health">
+              <i class="fa-solid fa-heart-pulse"></i> Test GET /health
+            </button>
+            <button class="btn btn-outline-success btn-sm" id="btn-test-books">
+              <i class="fa-solid fa-book"></i> Test GET /api/books
+            </button>
+          </div>
+
+          <div class="test-result-box margin-top-sm" id="test-result-box">
+            <div class="test-result-header">
+              <span class="test-status" id="test-result-status">Chưa kiểm tra</span>
+              <span class="test-time" id="test-result-time"></span>
+            </div>
+            <pre class="json-code" id="test-result-json">// Kết quả trả về từ Backend API sẽ hiển thị ở đây...</pre>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close="modal-api-config">Đóng</button>
+        <button class="btn btn-primary" id="btn-save-api-url">
+          <i class="fa-solid fa-floppy-disk"></i> Lưu & Kết Nối Lại
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Đăng Nhập / Đăng Ký (Auth) -->
+  <div class="modal-overlay" id="modal-auth">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <div class="modal-tab-headers">
+          <button class="auth-tab-btn active" id="auth-tab-login" data-authtab="login">Đăng Nhập</button>
+          <button class="auth-tab-btn" id="auth-tab-register" data-authtab="register">Đăng Ký Độc Giả</button>
+        </div>
+        <button class="modal-close" data-close="modal-auth">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Form Đăng Nhập -->
+        <form id="form-login" class="auth-form active">
+          <div class="form-group">
+            <label for="login-email">Email</label>
+            <div class="input-icon-wrapper">
+              <i class="fa-solid fa-envelope"></i>
+              <input type="email" id="login-email" class="form-control" required placeholder="nhap-email@example.com" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="login-password">Mật khẩu</label>
+            <div class="input-icon-wrapper">
+              <i class="fa-solid fa-lock"></i>
+              <input type="password" id="login-password" class="form-control" required placeholder="••••••••" />
+            </div>
+          </div>
+
+          <div class="quick-accounts margin-top-sm">
+            <span class="text-xs text-muted">Tài khoản thử nghiệm:</span>
+            <div class="quick-acc-btns">
+              <button type="button" class="btn-quick-acc" id="btn-fill-admin">
+                <i class="fa-solid fa-user-shield"></i> Admin Test
+              </button>
+              <button type="button" class="btn-quick-acc" id="btn-fill-user">
+                <i class="fa-solid fa-user"></i> Độc Giả Test
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block margin-top-md" id="btn-submit-login">
+            <i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập
+          </button>
+        </form>
+
+        <!-- Form Đăng Ký -->
+        <form id="form-register" class="auth-form">
+          <div class="form-group">
+            <label for="reg-name">Họ và Tên</label>
+            <div class="input-icon-wrapper">
+              <i class="fa-solid fa-user"></i>
+              <input type="text" id="reg-name" class="form-control" required placeholder="Nguyễn Văn A" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="reg-email">Email đăng ký</label>
+            <div class="input-icon-wrapper">
+              <i class="fa-solid fa-envelope"></i>
+              <input type="email" id="reg-email" class="form-control" required placeholder="email@example.com" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="reg-password">Mật khẩu</label>
+            <div class="input-icon-wrapper">
+              <i class="fa-solid fa-key"></i>
+              <input type="password" id="reg-password" class="form-control" required placeholder="••••••••" minlength="6" />
+            </div>
+          </div>
+          <button type="submit" class="btn btn-success btn-block margin-top-md" id="btn-submit-register">
+            <i class="fa-solid fa-user-plus"></i> Tạo Tài Khoản Mới
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Thêm / Sửa Sách (Admin Only) -->
+  <div class="modal-overlay" id="modal-book-form">
+    <div class="modal-card modal-md">
+      <div class="modal-header">
+        <h3 id="book-modal-title"><i class="fa-solid fa-book-medical color-primary"></i> Thêm Sách Mới</h3>
+        <button class="modal-close" data-close="modal-book-form">&times;</button>
+      </div>
+      <form id="form-book">
+        <input type="hidden" id="book-form-id" value="" />
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="book-title">Tên sách <span class="required">*</span></label>
+            <input type="text" id="book-title" class="form-control" required placeholder="Ví dụ: Lập Trình Node.js Từ Cơ Bản Đến Nâng Cao" />
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label for="book-author">Tác giả <span class="required">*</span></label>
+              <input type="text" id="book-author" class="form-control" required placeholder="Nguyễn Văn B" />
+            </div>
+            <div class="form-group">
+              <label for="book-category">Thể loại</label>
+              <input type="text" id="book-category" class="form-control" placeholder="Công nghệ, Kinh tế,..." list="category-list" />
+              <datalist id="category-list">
+                <option value="Công nghệ"></option>
+                <option value="Văn học"></option>
+                <option value="Kinh tế"></option>
+                <option value="Kỹ năng"></option>
+                <option value="Khoa học"></option>
+              </datalist>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label for="book-total-copies">Tổng số bản sao <span class="required">*</span></label>
+              <input type="number" id="book-total-copies" class="form-control" required min="1" value="5" />
+            </div>
+            <div class="form-group">
+              <label for="book-cover-url">URL Ảnh bìa (Không bắt buộc)</label>
+              <input type="url" id="book-cover-url" class="form-control" placeholder="https://images.unsplash.com/..." />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-book-form">Hủy</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-book">
+            <i class="fa-solid fa-check"></i> Lưu Thông Tin Sách
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification System -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- App JavaScript Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
