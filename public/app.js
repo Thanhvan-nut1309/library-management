@@ -9,12 +9,17 @@
   // ==========================================
   // Global State
   // ==========================================
-  const DEFAULT_API_URL = window.location.origin.startsWith('http')
-    ? `${window.location.origin}/api`
-    : '/api';
+  const DEFAULT_API_URL = 'https://d1x3ohhxqqai40.cloudfront.net';
+  const OLD_ALB_URL = 'http://alb-library-management-1208468593.ap-southeast-2.elb.amazonaws.com';
+
+  let savedApiUrl = localStorage.getItem('lib_api_url');
+  if (savedApiUrl === OLD_ALB_URL) {
+    savedApiUrl = DEFAULT_API_URL;
+    localStorage.setItem('lib_api_url', DEFAULT_API_URL);
+  }
 
   let state = {
-    apiBaseUrl: localStorage.getItem('lib_api_url') || DEFAULT_API_URL,
+    apiBaseUrl: savedApiUrl || DEFAULT_API_URL,
     token: localStorage.getItem('lib_token') || null,
     user: JSON.parse(localStorage.getItem('lib_user') || 'null'),
     books: [],
@@ -311,8 +316,12 @@
       openModal('modal-api-config');
     });
 
+    document.getElementById('preset-cloudfront')?.addEventListener('click', () => {
+      document.getElementById('input-api-url').value = 'https://d1x3ohhxqqai40.cloudfront.net';
+    });
+
     document.getElementById('preset-relative')?.addEventListener('click', () => {
-      document.getElementById('input-api-url').value = DEFAULT_API_URL;
+      document.getElementById('input-api-url').value = '/api';
     });
 
     document.getElementById('preset-localhost')?.addEventListener('click', () => {

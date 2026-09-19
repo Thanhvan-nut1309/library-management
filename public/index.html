@@ -209,22 +209,23 @@
       </div>
       <div class="modal-body">
         <p class="text-sm text-muted">
-          Cấu hình đường dẫn trỏ đến Backend running trên <strong>AWS ECS Fargate</strong> (IP của ALB hoặc Tên miền Domain) để Frontend kết nối gọi dữ liệu.
+          Cấu hình đường dẫn trỏ đến Backend running trên <strong>AWS CloudFront / ECS Fargate</strong> để Frontend kết nối gọi dữ liệu.
         </p>
 
         <div class="form-group margin-top-md">
           <label for="input-api-url">API Base URL Endpoint</label>
           <div class="input-with-btn">
-            <input type="url" id="input-api-url" class="form-control" placeholder="http://<ALB-DNS-hoặc-IP>/api" />
+            <input type="url" id="input-api-url" class="form-control" placeholder="https://d1x3ohhxqqai40.cloudfront.net" />
             <button class="btn btn-secondary" id="btn-reset-api-url" title="Khôi phục mặc định">
               <i class="fa-solid fa-rotate-left"></i>
             </button>
           </div>
-          <span class="help-text">Ví dụ: <code>http://alb-library-12345.ap-southeast-1.elb.amazonaws.com</code> hoặc <code>http://localhost:3000</code></span>
+          <span class="help-text">Ví dụ: <code>https://d1x3ohhxqqai40.cloudfront.net</code> hoặc <code>http://localhost:3000</code></span>
         </div>
 
         <div class="quick-presets">
           <span class="quick-preset-title">Chọn nhanh:</span>
+          <button class="preset-chip" id="preset-cloudfront">☁️ CloudFront (https://d1x3ohhxqqai40.cloudfront.net)</button>
           <button class="preset-chip" id="preset-relative">📌 Local Relative (/api)</button>
           <button class="preset-chip" id="preset-localhost">💻 Localhost (http://localhost:3000)</button>
         </div>
