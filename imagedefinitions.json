@@ -1,4 +1,6 @@
 [
     {
         "name": "Main",
-        "imageUri": "367764690039.dkr.ecr.ap-southeast-2.amazonaws.com/library-management"
+        "imageUri": "367764690039.dkr.ecr.ap-southeast-2.amazonaws.com/library-management:latest"
+    }
+]
